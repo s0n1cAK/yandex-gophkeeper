@@ -8,13 +8,13 @@ import (
 )
 
 type fileConfig struct {
-	Address      *string `json:"address"`
-	Timeout      *string `json:"timeout"`
-	TokenFile    *string `json:"token_file"`
-	CryptoKey    *string `json:"crypto_key"`
-	RetryMax     *int    `json:"retry_max"`
-	RetryWaitMin *string `json:"retry_wait_min"`
-	RetryWaitMax *string `json:"retry_wait_max"`
+	Address            *string `json:"address"`
+	Timeout            *string `json:"timeout"`
+	TokenFile          *string `json:"token_file"`
+	RetryMax           *int    `json:"retry_max"`
+	RetryWaitMin       *string `json:"retry_wait_min"`
+	RetryWaitMax       *string `json:"retry_wait_max"`
+	InsecureSkipVerify *bool   `json:"insecure_skip_verify"`
 }
 
 func resolveConfigPath(args []string) (string, error) {
@@ -70,9 +70,6 @@ func applyFile(cfg *Config, fc fileConfig) error {
 	if fc.TokenFile != nil {
 		cfg.TokenFile = *fc.TokenFile
 	}
-	if fc.CryptoKey != nil {
-		cfg.CryptoKey = *fc.CryptoKey
-	}
 	if fc.RetryMax != nil {
 		cfg.RetryMax = *fc.RetryMax
 	}
@@ -86,5 +83,9 @@ func applyFile(cfg *Config, fc fileConfig) error {
 			return fmt.Errorf("bad retry_wait_max in config: %w", err)
 		}
 	}
+	if fc.InsecureSkipVerify != nil {
+		cfg.InsecureSkipVerify = *fc.InsecureSkipVerify
+	}
+
 	return nil
 }

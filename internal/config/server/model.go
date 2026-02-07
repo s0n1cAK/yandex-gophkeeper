@@ -12,6 +12,9 @@ type Config struct {
 	JWTSecret      string              `env:"JWT_SECRET" json:"jwt_secret"`
 	TokenTTL       customtype.Duration `env:"TOKEN_TTL" json:"token_ttl"`
 	CryptoKey      string              `env:"CRYPTO_KEY" json:"crypto_key"`
+	CryptoKeyID    string              `env:"CRYPTO_KEY_ID" json:"crypto_key_id"`
+	TLSCertPath    string              `env:"TLS_CERT" json:"tls_cert"`
+	TLSKeyPath     string              `env:"TLS_KEY" json:"tls_key"`
 }
 
 func Default() Config {
@@ -22,5 +25,8 @@ func Default() Config {
 		JWTSecret:      "",
 		TokenTTL:       customtype.Duration(24 * time.Hour),
 		CryptoKey:      "",
+		CryptoKeyID:    "v1",
+		TLSCertPath:    "",
+		TLSKeyPath:     "",
 	}
 }

@@ -12,24 +12,29 @@ import (
 var ErrHelpRequested = errors.New("help requested")
 
 func Load(args []string) (Config, error) {
+	cfg, _, err := LoadWithArgs(args)
+	return cfg, err
+}
+
+func LoadWithArgs(args []string) (Config, []string, error) {
 	cfg := Default()
 
 	cfgPath, err := resolveConfigPath(args)
 	if err != nil {
-		return Config{}, err
+		return Config{}, nil, err
 	}
 	if cfgPath != "" {
 		fc, err := loadFile(cfgPath)
 		if err != nil {
-			return Config{}, err
+			return Config{}, nil, err
 		}
 		if err := applyFile(&cfg, fc); err != nil {
-			return Config{}, err
+			return Config{}, nil, err
 		}
 	}
 
 	if err := env.Parse(&cfg); err != nil {
-		return Config{}, fmt.Errorf("parse env: %w", err)
+		return Config{}, nil, fmt.Errorf("parse env: %w", err)
 	}
 
 	fs := flag.NewFlagSet("gophkeeper-agent", flag.ContinueOnError)
@@ -41,9 +46,9 @@ func Load(args []string) (Config, error) {
 	}
 
 	fs.StringVar(&cfg.Address, "a", cfg.Address, "Server address")
+	fs.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", cfg.InsecureSkipVerify, "Skip TLS cert verification")
 	fs.Var(&cfg.Timeout, "timeout", "Request timeout")
 	fs.StringVar(&cfg.TokenFile, "token-file", cfg.TokenFile, "Path to local token file")
-	fs.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "Path to public key (AES)")
 
 	fs.IntVar(&cfg.RetryMax, "retry-max", cfg.RetryMax, "Max retries for failed requests")
 	fs.Var(&cfg.RetryWaitMin, "retry-wait-min", "Min retry wait")
@@ -53,18 +58,18 @@ func Load(args []string) (Config, error) {
 
 	if err := fs.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
-			return Config{}, ErrHelpRequested
+			return Config{}, nil, ErrHelpRequested
 		}
-		return Config{}, err
+		return Config{}, nil, err
 	}
 
 	cfg.Address = normalizeAddress(cfg.Address)
 
 	if err := Validate(cfg); err != nil {
-		return Config{}, err
+		return Config{}, nil, err
 	}
 
-	return cfg, nil
+	return cfg, fs.Args(), nil
 }
 
 func New() (Config, error) {

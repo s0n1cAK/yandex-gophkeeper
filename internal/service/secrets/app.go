@@ -2,6 +2,7 @@ package secrets
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 
 	"yandex-gophkeeper/internal/domain"
@@ -16,27 +17,26 @@ type Store interface {
 }
 
 type Crypto interface {
-	Encrypt(plain, aad []byte) (nonce, ciphertext []byte, err error)
-	Decrypt(nonce, ciphertext, aad []byte) ([]byte, error)
+	Encrypt(plain, aad []byte) (keyID string, nonce, ciphertext []byte, err error)
+	Decrypt(keyID string, nonce, ciphertext, aad []byte) ([]byte, error)
 }
 
 type Service struct {
 	st    Store
 	crypt Crypto
-	keyID string
 }
 
-func New(st Store, crypt Crypto, keyID string) *Service {
-	return &Service{st: st, crypt: crypt, keyID: keyID}
+func New(st Store, crypt Crypto) *Service {
+	return &Service{st: st, crypt: crypt}
 }
 
 func (s *Service) Create(ctx context.Context, ownerID domain.UserID, in SecretUpsert) (domain.SecretID, error) {
-	aad := aad(ownerID)
-	nonce, ct, err := s.crypt.Encrypt(in.Data, aad)
+	aad := aad(ownerID, in.Type, in.Comment)
+	keyID, nonce, ct, err := s.crypt.Encrypt(in.Data, aad)
 	if err != nil {
 		return 0, fmt.Errorf("encrypt: %w", err)
 	}
-	return s.st.AddSecret(ctx, ownerID, in.Type, in.Comment, s.keyID, nonce, ct)
+	return s.st.AddSecret(ctx, ownerID, in.Type, in.Comment, keyID, nonce, ct)
 }
 
 func (s *Service) List(ctx context.Context, ownerID domain.UserID) ([]domain.SecretMeta, error) {
@@ -48,7 +48,7 @@ func (s *Service) Get(ctx context.Context, ownerID domain.UserID, id domain.Secr
 	if err != nil {
 		return domain.Secret{}, nil, err
 	}
-	plain, err := s.crypt.Decrypt(sec.Nonce, sec.Ciphertext, aad(ownerID))
+	plain, err := s.crypt.Decrypt(sec.KeyID, sec.Nonce, sec.Ciphertext, aad(ownerID, sec.Type, sec.Comment))
 	if err != nil {
 		return domain.Secret{}, nil, fmt.Errorf("decrypt: %w", err)
 	}
@@ -56,17 +56,19 @@ func (s *Service) Get(ctx context.Context, ownerID domain.UserID, id domain.Secr
 }
 
 func (s *Service) Update(ctx context.Context, ownerID domain.UserID, id domain.SecretID, in SecretUpsert) error {
-	nonce, ct, err := s.crypt.Encrypt(in.Data, aad(ownerID))
+	keyID, nonce, ct, err := s.crypt.Encrypt(in.Data, aad(ownerID, in.Type, in.Comment))
 	if err != nil {
 		return fmt.Errorf("encrypt: %w", err)
 	}
-	return s.st.UpdateSecret(ctx, ownerID, id, in.Type, in.Comment, s.keyID, nonce, ct)
+	return s.st.UpdateSecret(ctx, ownerID, id, in.Type, in.Comment, keyID, nonce, ct)
 }
 
 func (s *Service) Delete(ctx context.Context, ownerID domain.UserID, id domain.SecretID) error {
 	return s.st.DeleteSecret(ctx, ownerID, id)
 }
 
-func aad(ownerID domain.UserID) []byte {
-	return []byte(fmt.Sprintf("owner:%d", ownerID))
+func aad(ownerID domain.UserID, t domain.SecretType, comment string) []byte {
+	s := fmt.Sprintf("owner:%d|type:%s|comment:%s", ownerID, string(t), comment)
+	sum := sha256.Sum256([]byte(s))
+	return sum[:]
 }

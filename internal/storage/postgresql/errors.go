@@ -2,16 +2,16 @@ package postgres
 
 import (
 	"errors"
+	"yandex-gophkeeper/internal/domain"
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v5"
 )
 
 var (
-	ErrUserAlreadyExists = errors.New("user already exists")
-	ErrUserNotFound      = errors.New("user not found")
-
-	ErrSecretNotFound = errors.New("secret not found")
+	ErrUserAlreadyExists = domain.ErrLoginAlreadyTaken
+	ErrUserNotFound      = domain.ErrUserNotFound
+	ErrSecretNotFound    = domain.ErrSecretNotFound
 )
 
 func isUniqueViolation(err error) bool {

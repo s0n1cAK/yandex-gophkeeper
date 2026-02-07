@@ -46,6 +46,9 @@ func (m *TokenManager) Issue(userID domain.UserID) (string, error) {
 
 func (m *TokenManager) Verify(token string) (int64, bool) {
 	parsed, err := jwt.ParseWithClaims(token, &Claims{}, func(t *jwt.Token) (any, error) {
+		if t.Method != jwt.SigningMethodHS256 {
+			return nil, errors.New("unexpected signing method")
+		}
 		return m.secret, nil
 	})
 	if err != nil || !parsed.Valid {

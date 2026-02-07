@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"yandex-gophkeeper/internal/transport/http/respond"
 )
 
 type (
@@ -20,8 +21,10 @@ type (
 	}
 
 	compressWriter struct {
-		w  http.ResponseWriter
-		zw *gzip.Writer
+		w           http.ResponseWriter
+		zw          *gzip.Writer
+		enabled     bool
+		wroteHeader bool
 	}
 
 	compressReader struct {
@@ -31,10 +34,7 @@ type (
 )
 
 func newCompressWriter(w http.ResponseWriter) *compressWriter {
-	return &compressWriter{
-		w:  w,
-		zw: gzip.NewWriter(w),
-	}
+	return &compressWriter{w: w}
 }
 
 func (c *compressWriter) Header() http.Header {
@@ -42,18 +42,35 @@ func (c *compressWriter) Header() http.Header {
 }
 
 func (c *compressWriter) Write(p []byte) (int, error) {
-	return c.zw.Write(p)
+	if !c.wroteHeader {
+		c.WriteHeader(http.StatusOK)
+	}
+	if c.enabled {
+		return c.zw.Write(p)
+	}
+	return c.w.Write(p)
 }
 
 func (c *compressWriter) WriteHeader(statusCode int) {
-	if statusCode < 300 {
-		c.w.Header().Set("Content-Encoding", "gzip")
+	if c.wroteHeader {
+		return
 	}
+	c.wroteHeader = true
+
+	if statusCode < 300 {
+		c.enabled = true
+		c.w.Header().Set("Content-Encoding", "gzip")
+		c.zw = gzip.NewWriter(c.w)
+	}
+
 	c.w.WriteHeader(statusCode)
 }
 
 func (c *compressWriter) Close() error {
-	return c.zw.Close()
+	if c.enabled && c.zw != nil {
+		return c.zw.Close()
+	}
+	return nil
 }
 
 func newCompressReader(r io.ReadCloser) (*compressReader, error) {
@@ -88,6 +105,8 @@ func GzipCompession() func(http.Handler) http.Handler {
 			acceptEncoding := r.Header.Get("Accept-Encoding")
 			supportsGzip := strings.Contains(acceptEncoding, "gzip")
 			if supportsGzip {
+				w.Header().Add("Vary", "Accept-Encoding")
+
 				cw := newCompressWriter(w)
 				ow = cw
 				defer cw.Close()
@@ -98,13 +117,12 @@ func GzipCompession() func(http.Handler) http.Handler {
 			if sendsGzip {
 				cr, err := newCompressReader(r.Body)
 				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
+					respond.WriteError(w, http.StatusBadRequest, "bad gzip body")
 					return
 				}
 				r.Body = cr
 				defer cr.Close()
 			}
-
 			h.ServeHTTP(ow, r)
 
 		}

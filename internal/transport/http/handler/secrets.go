@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -101,7 +102,21 @@ func (h *SecretsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	sec, plain, err := h.svc.Get(r.Context(), uid, domain.SecretID(id))
 	if err != nil {
 		h.log.Warn("get secret failed", zap.Error(err))
-		respond.WriteError(w, http.StatusNotFound, "not found")
+		if errors.Is(err, domain.ErrInvalidPayload) ||
+			errors.Is(err, domain.ErrInvalidSecretType) ||
+			errors.Is(err, domain.ErrEmptyCardNumber) ||
+			errors.Is(err, domain.ErrInvalidCardNumberFormat) ||
+			errors.Is(err, domain.ErrInvalidBankCardNumber) ||
+			errors.Is(err, domain.ErrEmptyCardExpiry) {
+			respond.WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		if errors.Is(err, domain.ErrSecretNotFound) {
+			respond.WriteError(w, http.StatusNotFound, "not found")
+			return
+		}
+		respond.WriteError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
@@ -140,7 +155,22 @@ func (h *SecretsHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.svc.Update(r.Context(), uid, domain.SecretID(id), upsert); err != nil {
 		h.log.Error("update secret failed", zap.Error(err))
-		respond.WriteError(w, http.StatusBadRequest, err.Error())
+		if errors.Is(err, domain.ErrInvalidPayload) ||
+			errors.Is(err, domain.ErrInvalidSecretType) ||
+			errors.Is(err, domain.ErrEmptyCardNumber) ||
+			errors.Is(err, domain.ErrInvalidCardNumberFormat) ||
+			errors.Is(err, domain.ErrInvalidBankCardNumber) ||
+			errors.Is(err, domain.ErrEmptyCardExpiry) {
+			respond.WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		if errors.Is(err, domain.ErrSecretNotFound) {
+			respond.WriteError(w, http.StatusNotFound, "not found")
+			return
+		}
+
+		respond.WriteError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
@@ -162,7 +192,21 @@ func (h *SecretsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.svc.Delete(r.Context(), uid, domain.SecretID(id)); err != nil {
 		h.log.Warn("delete secret failed", zap.Error(err))
-		respond.WriteError(w, http.StatusNotFound, "not found")
+		if errors.Is(err, domain.ErrInvalidPayload) ||
+			errors.Is(err, domain.ErrInvalidSecretType) ||
+			errors.Is(err, domain.ErrEmptyCardNumber) ||
+			errors.Is(err, domain.ErrInvalidCardNumberFormat) ||
+			errors.Is(err, domain.ErrInvalidBankCardNumber) ||
+			errors.Is(err, domain.ErrEmptyCardExpiry) {
+			respond.WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		if errors.Is(err, domain.ErrSecretNotFound) {
+			respond.WriteError(w, http.StatusNotFound, "not found")
+			return
+		}
+		respond.WriteError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 

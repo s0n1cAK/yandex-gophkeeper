@@ -14,6 +14,9 @@ type fileConfig struct {
 	JWTSecret      *string `json:"jwt_secret"`
 	TokenTTL       *string `json:"token_ttl"`
 	CryptoKey      *string `json:"crypto_key"`
+	CryptoKeyID    *string `json:"crypto_key_id"`
+	TLSCertPath    *string `json:"tls_cert"`
+	TLSKeyPath     *string `json:"tls_key"`
 }
 
 func resolveConfigPath(args []string) (string, error) {
@@ -77,6 +80,15 @@ func applyFile(cfg *Config, fc fileConfig) error {
 	}
 	if fc.CryptoKey != nil {
 		cfg.CryptoKey = *fc.CryptoKey
+	}
+	if fc.CryptoKeyID != nil {
+		cfg.CryptoKeyID = *fc.CryptoKeyID
+	}
+	if fc.TLSCertPath != nil {
+		cfg.TLSCertPath = *fc.TLSCertPath
+	}
+	if fc.TLSKeyPath != nil {
+		cfg.TLSKeyPath = *fc.TLSKeyPath
 	}
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	config "yandex-gophkeeper/internal/config/server"
@@ -42,7 +43,19 @@ func New(d Deps) (*Server, error) {
 
 func (s *Server) Start() error {
 	s.log.Info("starting server", zap.String("addr", s.cfg.Address))
-	err := s.srv.ListenAndServe()
+
+	cert := strings.TrimSpace(s.cfg.TLSCertPath)
+	key := strings.TrimSpace(s.cfg.TLSKeyPath)
+
+	var err error
+	if cert != "" && key != "" {
+		s.log.Info("tls enabled", zap.String("cert", cert))
+		err = s.srv.ListenAndServeTLS(cert, key)
+	} else {
+		s.log.Warn("tls disabled (dev mode)")
+		err = s.srv.ListenAndServe()
+	}
+
 	if err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("http listen: %w", err)
 	}

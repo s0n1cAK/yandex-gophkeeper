@@ -4,18 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	config "yandex-gophkeeper/internal/config/client"
 	"yandex-gophkeeper/internal/logger"
+	"yandex-gophkeeper/internal/service/client"
 
-	"go.uber.org/zap"
+	config "yandex-gophkeeper/internal/config/client"
 )
 
 func main() {
-	_, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	logger, err := logger.New()
@@ -27,13 +26,26 @@ func main() {
 		_ = logger.Sync()
 	}()
 
-	cfg, err := config.New()
+	c, rest, err := config.LoadWithArgs(os.Args[1:])
 	if errors.Is(err, config.ErrHelpRequested) {
 		return
 	}
 	if err != nil {
-		log.Fatal("config error", zap.Error(err))
+		fmt.Fprintln(os.Stderr, "config error:", err)
+		os.Exit(1)
 	}
 
-	fmt.Println(cfg)
+	var tok string
+	if t, err := client.Read(c.TokenFile); err == nil {
+		tok = t
+	}
+
+	cli := client.NewCLI(client.CLI{
+		Client:    client.New(c, tok),
+		TokenPath: c.TokenFile,
+		Stdout:    os.Stdout,
+		Stderr:    os.Stderr,
+	})
+
+	os.Exit(cli.Run(ctx, rest))
 }

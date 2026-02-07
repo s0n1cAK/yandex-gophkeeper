@@ -46,6 +46,9 @@ func Load(args []string) (Config, error) {
 	fs.StringVar(&cfg.JWTSecret, "jwt-secret", cfg.JWTSecret, "JWT secret")
 	fs.Var(&cfg.TokenTTL, "token-ttl", "Token TTL")
 	fs.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "Path to private key (AES)")
+	fs.StringVar(&cfg.CryptoKeyID, "crypto-key-id", cfg.CryptoKeyID, "Private key ID")
+	fs.StringVar(&cfg.TLSCertPath, "tls-cert", cfg.TLSCertPath, "Path to TLS certificate")
+	fs.StringVar(&cfg.TLSKeyPath, "tls-key", cfg.TLSKeyPath, "Path to TLS key")
 
 	fs.String("c", "", "Path to config file (JSON)")
 

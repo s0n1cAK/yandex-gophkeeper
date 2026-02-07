@@ -54,12 +54,13 @@ func New(ctx context.Context, d Deps) (*App, error) {
 	if err != nil {
 		return nil, fmt.Errorf("load aes key: %w", err)
 	}
-	cm, err := crypt.NewManager(key)
+	kr, err := crypt.NewKeyring(d.Config.CryptoKeyID, key)
 	if err != nil {
-		return nil, fmt.Errorf("init crypt manager: %w", err)
+		return nil, fmt.Errorf("init keyring: %w", err)
 	}
 
-	secretsSvc := secrets.New(d.Store, cm, "v1")
+	secretsSvc := secrets.New(d.Store, kr)
+
 	secretsH := handler.NewSecrets(d.Logger, secretsSvc)
 
 	httpSrv, err := transport.New(transport.Deps{

@@ -35,3 +35,5 @@ go.work.sum
 /config_client.json
 /config_server.json
 /docker-compose.yml
+/keys
+/certs
