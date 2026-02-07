@@ -62,9 +62,14 @@ func (s *Server) Start() error {
 	return nil
 }
 
-func (s *Server) Shutdown(ctxContextDone <-chan struct{}) {
-	<-ctxContextDone
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func (s *Server) Shutdown(ctx context.Context) error {
+	s.log.Info("shutting down http server")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_ = s.srv.Shutdown(ctx)
+
+	if err := s.srv.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("http shutdown: %w", err)
+	}
+	return nil
 }

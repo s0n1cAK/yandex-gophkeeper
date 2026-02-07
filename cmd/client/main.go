@@ -40,12 +40,21 @@ func main() {
 		tok = t
 	}
 
+	cl := client.New(c, tok)
+	defer cl.Close()
+
 	cli := client.NewCLI(client.CLI{
-		Client:    client.New(c, tok),
+		Client:    cl,
 		TokenPath: c.TokenFile,
 		Stdout:    os.Stdout,
 		Stderr:    os.Stderr,
 	})
 
-	os.Exit(cli.Run(ctx, rest))
+	code := cli.Run(ctx, rest)
+
+	if errors.Is(ctx.Err(), context.Canceled) && code == 0 {
+		fmt.Fprintln(os.Stderr, "shutting down...")
+		code = 130
+	}
+	os.Exit(code)
 }

@@ -91,8 +91,16 @@ func (a *App) Start(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		a.http.Shutdown(ctx.Done())
+		if err := a.http.Shutdown(context.Background()); err != nil {
+			a.log.Warn("http shutdown failed", zap.Error(err))
+		}
+
+		err := <-errCh
+		if err != nil && err != http.ErrServerClosed {
+			return err
+		}
 		return nil
+
 	case err := <-errCh:
 		if err != nil && err != http.ErrServerClosed {
 			return err
@@ -102,5 +110,7 @@ func (a *App) Start(ctx context.Context) error {
 }
 
 func (a *App) Close() {
-
+	if a.store != nil {
+		a.store.Close()
+	}
 }

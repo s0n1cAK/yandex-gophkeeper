@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -217,6 +218,10 @@ func (c *CLI) Run(ctx context.Context, args []string) int {
 func fail(stderr io.Writer, err error) int {
 	if err == nil {
 		return 0
+	}
+	if errors.Is(err, context.Canceled) {
+		fmt.Fprintln(stderr, "shutting down...")
+		return 130
 	}
 	fmt.Fprintln(stderr, "error:", err)
 	return 1

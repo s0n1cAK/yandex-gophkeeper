@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -93,8 +94,14 @@ func (c *Client) doJSON(ctx context.Context, method, path string, in any, out an
 		resp, err := try()
 		if err != nil {
 			lastErr = err
-			c.sleep(i)
+			if errors.Is(err, context.Canceled) || ctx.Err() != nil {
+				return ctx.Err()
+			}
+			if !c.sleep(ctx, i) {
+				return ctx.Err()
+			}
 			continue
+
 		}
 
 		b, readErr := readBody(resp)
@@ -104,13 +111,13 @@ func (c *Client) doJSON(ctx context.Context, method, path string, in any, out an
 		}
 
 		if resp.StatusCode >= 500 {
-			msg := errorMessageFromBody(b)
-			if msg == "" {
-				lastErr = fmt.Errorf("server error: %s", resp.Status)
-			} else {
-				lastErr = fmt.Errorf("server error: %s: %s", resp.Status, msg)
+			lastErr = fmt.Errorf("server error: %s", resp.Status)
+			if ctx.Err() != nil {
+				return ctx.Err()
 			}
-			c.sleep(i)
+			if !c.sleep(ctx, i) {
+				return ctx.Err()
+			}
 			continue
 		}
 
@@ -130,15 +137,25 @@ func (c *Client) doJSON(ctx context.Context, method, path string, in any, out an
 	return lastErr
 }
 
-func (c *Client) sleep(i int) {
+func (c *Client) sleep(ctx context.Context, i int) bool {
 	if i == c.retryMax {
-		return
+		return false
 	}
+
 	d := c.waitMin
 	if d <= 0 {
 		d = 200 * time.Millisecond
 	}
-	time.Sleep(d)
+
+	t := time.NewTimer(d)
+	defer t.Stop()
+
+	select {
+	case <-t.C:
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }
 
 func (c *Client) Ping(ctx context.Context) error {
@@ -205,6 +222,15 @@ func (c *Client) UpdateSecret(ctx context.Context, id int64, t domain.SecretType
 
 func (c *Client) DeleteSecret(ctx context.Context, id int64) error {
 	return c.doJSON(ctx, http.MethodDelete, fmt.Sprintf("/api/user/secrets/%d/", id), nil, nil, true)
+}
+
+func (c *Client) Close() {
+	if c == nil || c.hc == nil || c.hc.Transport == nil {
+		return
+	}
+	if tr, ok := c.hc.Transport.(*http.Transport); ok {
+		tr.CloseIdleConnections()
+	}
 }
 
 func readBody(resp *http.Response) ([]byte, error) {

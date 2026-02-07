@@ -18,7 +18,7 @@ type fileConfig struct {
 }
 
 func resolveConfigPath(args []string) (string, error) {
-	for i := 0; i < len(args); i++ {
+	for i := range args {
 		a := args[i]
 
 		switch a {
