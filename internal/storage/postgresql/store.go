@@ -58,6 +58,13 @@ func (s *Store) Close() {
 	}
 }
 
-func (s *Store) Pool() *pgxpool.Pool {
-	return s.pool
+func (s *Store) Ping(ctx context.Context) error {
+	if s == nil || s.pool == nil {
+		return fmt.Errorf("postgres: store is nil")
+	}
+
+	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	return s.pool.Ping(pingCtx)
 }
