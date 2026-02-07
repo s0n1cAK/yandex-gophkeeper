@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
 	config "yandex-gophkeeper/internal/config/server"
 	"yandex-gophkeeper/internal/logger"
+	app "yandex-gophkeeper/internal/service/app"
 	postgres "yandex-gophkeeper/internal/storage/postgresql"
 
 	"go.uber.org/zap"
@@ -33,7 +34,7 @@ func main() {
 		return
 	}
 	if err != nil {
-		log.Fatal("config error", zap.Error(err))
+		logger.Fatal("config error", zap.Error(err))
 	}
 
 	store, err := postgres.Init(ctx, cfg.DatabaseDSN, "migrations")
@@ -42,5 +43,17 @@ func main() {
 	}
 	defer store.Close()
 
-	fmt.Println(cfg)
+	a, err := app.New(ctx, app.Deps{
+		Config: &cfg,
+		Logger: logger,
+		Store:  store,
+	})
+	if err != nil {
+		logger.Fatal("failed to init app", zap.Error(err))
+	}
+	defer a.Close()
+
+	if err := a.Start(ctx); err != nil {
+		logger.Fatal("app stopped with error", zap.Error(err))
+	}
 }

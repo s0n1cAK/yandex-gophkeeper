@@ -45,7 +45,7 @@ func Load(args []string) (Config, error) {
 	fs.StringVar(&cfg.MigrationsPath, "migrations", cfg.MigrationsPath, "Migrations path")
 	fs.StringVar(&cfg.JWTSecret, "jwt-secret", cfg.JWTSecret, "JWT secret")
 	fs.Var(&cfg.TokenTTL, "token-ttl", "Token TTL")
-	fs.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "Path to private key (PEM)")
+	fs.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "Path to private key (AES)")
 
 	fs.String("c", "", "Path to config file (JSON)")
 

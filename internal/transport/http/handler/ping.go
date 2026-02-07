@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"yandex-gophkeeper/internal/transport/http/respond"
 )
 
 type Pinger interface {
@@ -20,9 +21,9 @@ func NewPing(p Pinger) *PingHandler {
 func (h *PingHandler) Ping(w http.ResponseWriter, r *http.Request) {
 	if h.pinger != nil {
 		if err := h.pinger.Ping(r.Context()); err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			respond.WriteError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	respond.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

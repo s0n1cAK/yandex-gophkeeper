@@ -43,7 +43,7 @@ func Load(args []string) (Config, error) {
 	fs.StringVar(&cfg.Address, "a", cfg.Address, "Server address")
 	fs.Var(&cfg.Timeout, "timeout", "Request timeout")
 	fs.StringVar(&cfg.TokenFile, "token-file", cfg.TokenFile, "Path to local token file")
-	fs.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "Path to public key (PEM)")
+	fs.StringVar(&cfg.CryptoKey, "crypto-key", cfg.CryptoKey, "Path to public key (AES)")
 
 	fs.IntVar(&cfg.RetryMax, "retry-max", cfg.RetryMax, "Max retries for failed requests")
 	fs.Var(&cfg.RetryWaitMin, "retry-wait-min", "Min retry wait")

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"yandex-gophkeeper/internal/domain"
+	"yandex-gophkeeper/internal/transport/http/respond"
 )
 
 type ctxKey string
@@ -20,13 +21,13 @@ func Auth(v TokenVerifier) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token := bearerToken(r)
 			if token == "" {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				respond.WriteError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
 
 			uid, ok := v.Verify(token)
 			if !ok {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				respond.WriteError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
 

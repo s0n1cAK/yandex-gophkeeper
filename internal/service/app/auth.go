@@ -1,4 +1,4 @@
-package server
+package app
 
 import (
 	"context"
@@ -40,10 +40,7 @@ func (a *AuthService) Register(ctx context.Context, username, password string) (
 
 	u, err := a.store.CreateUser(ctx, username, string(hash))
 	if err != nil {
-		// MVP: маппинг “чуть-чуть”, чтобы хендлеру было проще
 		if errors.Is(err, postgres.ErrUserAlreadyExists) {
-			// если у тебя есть доменная ошибка под это — лучше вернуть её
-			// return "", domain.ErrLoginAlreadyTaken
 			return "", err
 		}
 		return "", err

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"yandex-gophkeeper/internal/domain"
 	"yandex-gophkeeper/internal/transport/http/middleware"
+	"yandex-gophkeeper/internal/transport/http/respond"
 
 	"go.uber.org/zap"
 )
@@ -35,45 +36,45 @@ func userIDFromContext(ctx context.Context) (domain.UserID, bool) {
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req authRequest
-	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+	if err := respond.DecodeJSON(r, &req); err != nil {
+		respond.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	req.Username = strings.TrimSpace(req.Username)
 	req.Password = strings.TrimSpace(req.Password)
 	if req.Username == "" || req.Password == "" {
-		writeError(w, http.StatusBadRequest, "username and password required")
+		respond.WriteError(w, http.StatusBadRequest, "username and password required")
 		return
 	}
 
 	token, err := h.svc.Register(r.Context(), req.Username, req.Password)
 	if err != nil {
 		h.log.Error("register failed", zap.Error(err))
-		writeError(w, http.StatusBadRequest, err.Error())
+		respond.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"token": token})
+	respond.WriteJSON(w, http.StatusOK, map[string]string{"token": token})
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req authRequest
-	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+	if err := respond.DecodeJSON(r, &req); err != nil {
+		respond.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	req.Username = strings.TrimSpace(req.Username)
 	req.Password = strings.TrimSpace(req.Password)
 	if req.Username == "" || req.Password == "" {
-		writeError(w, http.StatusBadRequest, "username and password required")
+		respond.WriteError(w, http.StatusBadRequest, "username and password required")
 		return
 	}
 
 	token, err := h.svc.Login(r.Context(), req.Username, req.Password)
 	if err != nil {
 		h.log.Warn("login failed", zap.Error(err))
-		writeError(w, http.StatusUnauthorized, "invalid credentials")
+		respond.WriteError(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"token": token})
+	respond.WriteJSON(w, http.StatusOK, map[string]string{"token": token})
 }
