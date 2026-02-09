@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"yandex-gophkeeper/internal/infra/tokenfile"
 	"yandex-gophkeeper/internal/logger"
 	"yandex-gophkeeper/internal/service/client"
 
@@ -36,7 +37,7 @@ func main() {
 	}
 
 	var tok string
-	if t, err := client.Read(c.TokenFile); err == nil {
+	if t, err := tokenfile.Read(c.TokenFile); err == nil {
 		tok = t
 	}
 

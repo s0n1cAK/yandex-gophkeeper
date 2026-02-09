@@ -14,8 +14,11 @@ import (
 type CLI struct {
 	Client    *Client
 	TokenPath string
-	Stdout    io.Writer
-	Stderr    io.Writer
+
+	TokenWriter func(path, token string) error
+
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
 func NewCLI(с CLI) *CLI {
@@ -29,10 +32,11 @@ func NewCLI(с CLI) *CLI {
 	}
 
 	return &CLI{
-		Client:    с.Client,
-		TokenPath: с.TokenPath,
-		Stdout:    stdout,
-		Stderr:    stderr,
+		Client:      с.Client,
+		TokenPath:   с.TokenPath,
+		TokenWriter: с.TokenWriter,
+		Stdout:      stdout,
+		Stderr:      stderr,
 	}
 }
 
@@ -69,7 +73,11 @@ func (c *CLI) Run(ctx context.Context, args []string) int {
 
 		c.Client.SetToken(tok)
 
-		if code := fail(c.Stderr, Write(c.TokenPath, tok)); code != 0 {
+		if c.TokenWriter == nil {
+			fmt.Fprintln(c.Stderr, "error: token writer is nil")
+			return 1
+		}
+		if code := fail(c.Stderr, c.TokenWriter(c.TokenPath, tok)); code != 0 {
 			return code
 		}
 
@@ -89,7 +97,11 @@ func (c *CLI) Run(ctx context.Context, args []string) int {
 
 		c.Client.SetToken(tok)
 
-		if code := fail(c.Stderr, Write(c.TokenPath, tok)); code != 0 {
+		if c.TokenWriter == nil {
+			fmt.Fprintln(c.Stderr, "error: token writer is nil")
+			return 1
+		}
+		if code := fail(c.Stderr, c.TokenWriter(c.TokenPath, tok)); code != 0 {
 			return code
 		}
 

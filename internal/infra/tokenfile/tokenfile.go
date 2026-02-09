@@ -1,4 +1,4 @@
-package client
+package tokenfile
 
 import (
 	"os"

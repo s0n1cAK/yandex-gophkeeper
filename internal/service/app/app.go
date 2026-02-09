@@ -7,6 +7,7 @@ import (
 
 	config "yandex-gophkeeper/internal/config/server"
 	"yandex-gophkeeper/internal/crypt"
+	"yandex-gophkeeper/internal/infra/jwt"
 	"yandex-gophkeeper/internal/service/secrets"
 	postgres "yandex-gophkeeper/internal/storage/postgresql"
 	transport "yandex-gophkeeper/internal/transport/http"
@@ -41,7 +42,7 @@ func New(ctx context.Context, d Deps) (*App, error) {
 
 	pingH := handler.NewPing(d.Store)
 
-	tokenMgr, err := NewTokenManager(d.Config.JWTSecret, d.Config.TokenTTL.Duration())
+	tokenMgr, err := jwt.NewTokenManager(d.Config.JWTSecret, d.Config.TokenTTL.Duration())
 	if err != nil {
 		return nil, fmt.Errorf("failed to init jwtmanager")
 	}

@@ -16,12 +16,16 @@ type UsersStore interface {
 	GetUserByUsername(ctx context.Context, username string) (domain.User, error)
 }
 
-type AuthService struct {
-	store  UsersStore
-	tokens *TokenManager
+type TokenIssuer interface {
+	Issue(userID domain.UserID) (string, error)
 }
 
-func NewAuthService(store UsersStore, tokens *TokenManager) *AuthService {
+type AuthService struct {
+	store  UsersStore
+	tokens TokenIssuer
+}
+
+func NewAuthService(store UsersStore, tokens TokenIssuer) *AuthService {
 	return &AuthService{store: store, tokens: tokens}
 }
 
